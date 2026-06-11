@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+ARG ROCM_IMAGE=rocm/onnxruntime:rocm7.2.4_ub24.04_ort1.23_torch2.10.0
+FROM --platform=$BUILDPLATFORM $ROCM_IMAGE AS rocm-libs
+
+FROM --platform=$BUILDPLATFORM rust:1-slim-trixie AS builder
+ARG TARGETARCH
+ENV CARGO_HOME=/root/.cargo
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y cmake make libutfcpp-dev unzip git build-essential pkg-config clang yasm wget libssl-dev
+RUN wget -O taglib.zip https://github.com/taglib/taglib/archive/refs/tags/v2.2.1.zip && \
+    unzip taglib.zip && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-2.2.1 && \
+    make -j && \
+    make install
+
+COPY --from=rocm-libs /opt/venv/lib/python3.12/site-packages/onnxruntime/capi/libonnxruntime* /usr/local/lib/
+RUN ln -s /usr/local/lib/libonnxruntime.so.1.23.2 /usr/local/lib/libonnxruntime.so
+COPY --from=rocm-libs /opt/venv/lib/python3.12/site-packages/onnxruntime/capi/libonnxruntime_providers_shared.so /usr/local/lib/
+COPY --from=rocm-libs /opt/venv/lib/python3.12/site-packages/onnxruntime/capi/libonnxruntime_providers_migraphx.so /usr/local/lib/
+
+WORKDIR /build
+ADD . .
+WORKDIR /build/cli
+ENV ORT_STRATEGY=system
+ENV ORT_LIB_LOCATION=/usr/local/lib
+ENV ORT_PREFER_DYNAMIC_LINK=true
+RUN --mount=type=cache,target=/build/target/release/build \
+    --mount=type=cache,target=/build/target/release/deps \
+    --mount=type=cache,target=/build/target/release/incremental \
+    --mount=type=cache,target=/build/target/CACHEDIR.TAG \
+    --mount=type=cache,target=/build/cli/target/release/build \
+    --mount=type=cache,target=/build/cli/target/release/deps \
+    --mount=type=cache,target=/build/cli/target/release/incremental \
+    --mount=type=cache,target=/build/cli/target/CACHEDIR.TAG \
+    --mount=type=cache,target=/root/.cargo/ \
+    cargo build --release --bins --no-default-features \
+        --features rocm
+
+FROM $ROCM_IMAGE
+COPY --from=builder /build/target/release/stemgen /usr/bin/stemgen
+RUN ln -s /opt/venv/lib/python3.12/site-packages/onnxruntime/capi/libonnxruntime.so.1.23.2 /opt/venv/lib/python3.12/site-packages/onnxruntime/capi/libonnxruntime.so.1
+ENV LD_LIBRARY_PATH=/opt/venv/lib/python3.12/site-packages/onnxruntime/capi/
+RUN useradd -m -u 1001 user
+USER user
+RUN mkdir -p /home/user/.cache/dev.acolombier.stemgen
+VOLUME /home/user/.cache/dev.acolombier.stemgen
+ENTRYPOINT [ "/usr/bin/stemgen" ]

@@ -32,4 +32,4 @@ optional = true
 [features]
 default = []
 cuda = ["ort/cuda","ort/copy-dylibs" ]
-rocm = ["ort/rocm","ort/copy-dylibs" ]
+rocm = ["ort/migraphx","ort/copy-dylibs","ort/api-23" ]

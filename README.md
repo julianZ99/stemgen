@@ -139,7 +139,7 @@ container.
 
 - CPU (no hardware acceleration): `aclmb/stemgen`
 - Cuda 12 (Nvidia card): `aclmb/stemgen:cuda`
-- ROCm (AMD card): `aclmb/stemgen:rocm`
+- ROCm/MIGraphX (AMD card): `aclmb/stemgen:rocm`
 
 Here the simple way to use it:
 
@@ -200,7 +200,7 @@ stemgen create [GENERATE OPTIONS, COMMON OPTIONS] OUTPUT
 
 Options for "generate":
   --model <model_name>            Demucs model.
-  --device <cpu or cuda>          Device for the demucs model inference
+  --device <cpu, cuda, or migraphx>          Device for the demucs model inference
   --ext TEXT                      Extension for the STEM file
   --repo DIRECTORY                The local directory to use to fetch models
                                   for demucs.

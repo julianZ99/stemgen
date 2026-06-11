@@ -6,7 +6,7 @@ use ort::{session::{builder::GraphOptimizationLevel, Session}, value::Tensor};
 #[cfg(feature = "cuda")]
 use ort::execution_providers::CUDAExecutionProvider;
 #[cfg(feature = "rocm")]
-use ort::execution_providers::ROCmExecutionProvider;
+use ort::execution_providers::MIGraphXExecutionProvider;
 
 use ureq::{
     config::Config,
@@ -42,7 +42,7 @@ pub enum Device {
     #[cfg(feature = "cuda")]
     CUDA,
     #[cfg(feature = "rocm")]
-    ROCm,
+    MIGraphX,
 }
 
 impl std::fmt::Display for Device {
@@ -51,7 +51,7 @@ impl std::fmt::Display for Device {
             #[cfg(feature = "cuda")]
             Device::CUDA => write!(f, "cuda"),
             #[cfg(feature = "rocm")]
-            Device::ROCm => write!(f, "rocm"),
+            Device::MIGraphX => write!(f, "migraphx"),
             Device::CPU => write!(f, "cpu"),
         }
     }
@@ -65,7 +65,7 @@ impl TryFrom<&str> for Device {
             #[cfg(feature = "cuda")]
             "cuda" => Ok(Device::CUDA),
             #[cfg(feature = "rocm")]
-            "rocm" => Ok(Device::ROCm),
+            "migraphx" => Ok(Device::MIGraphX),
             "cpu" => Ok(Device::CPU),
             _ => Err("unsupported device".to_owned()),
         }
@@ -139,8 +139,8 @@ impl Demucs {
                         .error_on_failure()
                 ],
                 #[cfg(feature = "rocm")]
-                Device::ROCm => vec![
-                    ROCmExecutionProvider::default()
+                Device::MIGraphX => vec![
+                    MIGraphXExecutionProvider::default()
                         .with_device_id(0)
                         .build()
                         .error_on_failure()
