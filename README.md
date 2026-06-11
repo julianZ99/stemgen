@@ -137,13 +137,9 @@ container.
 
 ### Flavour
 
-> [!WARNING]
-> The main tag (`aclmb/stemgen:0.4.0`) will include PyTorch with all dependencies
-> for any backends, inducing gigabytes of dependencies!
-
-- CPU (no hardware acceleration): `aclmb/stemgen:0.4.0-cpu`
-- Cuda 12 (Nvidia card): `aclmb/stemgen:0.4.0-cuda`
-- Cuda 11 (older Nvidia card/driver): `aclmb/stemgen:0.4.0-cuda11`
+- CPU (no hardware acceleration): `aclmb/stemgen`
+- Cuda 12 (Nvidia card): `aclmb/stemgen:cuda`
+- ROCm (AMD card): `aclmb/stemgen:rocm`
 
 Here the simple way to use it:
 
@@ -151,21 +147,34 @@ Here the simple way to use it:
 docker run \
     -v /path/to/folder:/path/to/folder \
     -it --rm \
-    aclmb/stemgen:0.4.0-<Flavour> generate \
+    aclmb/stemgen:<Flavour> generate \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```
 
-if you want to use CUDA acceleration (only relevant for the `generate`
-command), and cache the model not to download it every time, you can do the
-following:
+If you want GPU acceleration (only relevant for the `generate` command), and
+cache the model not to download it every time, you can do the following:
+
+For Nvidia:
 
 ```sh
 docker run \
     -v /path/to/folder:/path/to/folder \
-    -v stemgen_torch_cache:/root/.cache/torch/hub/ \
+    -v stemgen_cache:/home/user/.cache/dev.acolombier.stemgen \
     -it --gpus --rm \
-    aclmb/stemgen:0.4.0-<Flavour> generate \
+    aclmb/stemgen:cuda generate \
+        /path/to/folder/Artist\ -\ Title.mp3 \
+        /path/to/folder
+```
+
+For AMD:
+
+```sh
+docker run \
+    -v /path/to/folder:/path/to/folder \
+    -v stemgen_cache:/home/user/.cache/dev.acolombier.stemgen \
+    -it --device=/dev/kfd --device=/dev/dri --group-add=video --rm \
+    aclmb/stemgen:rocm generate \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```

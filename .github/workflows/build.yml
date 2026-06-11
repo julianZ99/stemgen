@@ -24,7 +24,7 @@ jobs:
         tag:
           - ""
           - cuda
-          - all
+          - rocm
     steps:
       - name: Prepare
         env:
@@ -33,8 +33,10 @@ jobs:
           platform=${{ matrix.platform }}
           if [ "$TAG" = "cuda" ]; then
             echo "BUILD_ARGS=--features cuda" >> $GITHUB_ENV
-          elif [ "$TAG" = "all" ]; then
-            echo "BUILD_ARGS=--all-features" >> $GITHUB_ENV
+            echo "ENABLE_CUDA=1" >> $GITHUB_ENV
+          elif [ "$TAG" = "rocm" ]; then
+            echo "BUILD_ARGS=--features rocm" >> $GITHUB_ENV
+            echo "ENABLE_ROCM=1" >> $GITHUB_ENV
           fi
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
@@ -72,6 +74,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_ARGS=${{ env.BUILD_ARGS }}
+            ENABLE_CUDA=${{ env.ENABLE_CUDA }}
+            ENABLE_ROCM=${{ env.ENABLE_ROCM }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ steps.login.outcome == 'success' }}
 
       - name: Export digest
@@ -97,7 +101,7 @@ jobs:
         tag:
           - ""
           - cuda
-          - all
+          - rocm
     needs:
       - docker
     steps:
